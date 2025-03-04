@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 
 function App() {
   const [todos, setTodos] = useState([]);
-  const [isPending, setIsPending] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -11,26 +11,19 @@ function App() {
       .then((res) => res.json())
       .then((data) => {
         setTodos(data);
-        setIsPending(false);
-      });
+        setLoading(false);
+      })
+      .catch((err) => console.error("Error fetching data:", err));
   }, []);
 
   const totalPages = Math.ceil(todos.length / itemsPerPage);
+  const displayedTodos = todos.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  // Get the todos for the current page
-  const indexOfLastTodo = currentPage * itemsPerPage;
-  const indexOfFirstTodo = indexOfLastTodo - itemsPerPage;
-  const currentTodos = todos.slice(indexOfFirstTodo, indexOfLastTodo);
-
-  // Generate page numbers (show only a few at a time)
-  const getPageNumbers = () => {
-    const maxPageNumbers = 5;
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxPageNumbers - 1);
-
-    if (totalPages > maxPageNumbers && end === totalPages) {
-      start = end - maxPageNumbers + 1;
-    }
+  // Generate pagination buttons dynamically
+  const paginationRange = () => {
+    let start = Math.max(1, page - 2);
+    let end = Math.min(totalPages, start + 4);
+    if (end === totalPages) start = Math.max(1, end - 4);
 
     const pages = [];
     if (start > 1) pages.push(1);
@@ -46,10 +39,10 @@ function App() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Todo List</h1>
 
-      {isPending ? (
+      {loading ? (
         <p className="text-xl font-semibold text-gray-600">Loading...</p>
       ) : (
-        <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden">
+        <div className="w-full max-w-4xl bg-white shadow-md rounded-lg overflow-hidden">
           <table className="w-full border-collapse">
             <thead className="bg-green-600 text-white">
               <tr>
@@ -60,7 +53,7 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {currentTodos.map((todo) => (
+              {displayedTodos.map((todo) => (
                 <tr key={todo.id} className="border-b hover:bg-gray-50 transition-all">
                   <td className="py-3 px-4 text-center">{todo.id}</td>
                   <td className="py-3 px-4 text-center">{todo.userId}</td>
@@ -76,25 +69,25 @@ function App() {
           {/* Pagination */}
           <div className="flex justify-center items-center gap-2 p-4">
             <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page === 1}
               className={`px-4 py-2 rounded-md ${
-                currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
+                page === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
               }`}
             >
               ◀
             </button>
 
-            {getPageNumbers().map((page, index) =>
-              typeof page === "number" ? (
+            {paginationRange().map((item, index) =>
+              typeof item === "number" ? (
                 <button
                   key={index}
-                  onClick={() => setCurrentPage(page)}
+                  onClick={() => setPage(item)}
                   className={`px-4 py-2 rounded-md transition-all ${
-                    currentPage === page ? "bg-green-600 text-white font-bold" : "bg-gray-200 hover:bg-gray-300"
+                    page === item ? "bg-green-600 text-white font-bold" : "bg-gray-200 hover:bg-gray-300"
                   }`}
                 >
-                  {page}
+                  {item}
                 </button>
               ) : (
                 <span key={index} className="px-3 py-2 text-gray-500">...</span>
@@ -102,10 +95,10 @@ function App() {
             )}
 
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page === totalPages}
               className={`px-4 py-2 rounded-md ${
-                currentPage === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
+                page === totalPages ? "bg-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
               }`}
             >
               ▶
